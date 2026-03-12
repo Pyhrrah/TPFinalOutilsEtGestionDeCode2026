@@ -1,6 +1,5 @@
-const app = require('supertest');
-const app = require('./server');
-const { request } = require('../server');
+const request = require('supertest');
+const app = require('../server');
 
 describe('API Health Check', () => {
   it('Should return OK status return code 200', async () => {
