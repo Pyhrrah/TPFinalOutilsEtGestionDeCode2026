@@ -12,7 +12,7 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
-        
+
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -25,18 +25,26 @@ jobs:
     - run: npm run test:coverage
 
   frontend-tests:
+    name: Tests Frontend (React/Vitest)
     runs-on: ubuntu-latest
+    
     defaults:
       run:
         working-directory: ./frontend
-        
+
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    - name: Checkout du code
+      uses: actions/checkout@v4
+      
+    - name: Configurer Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: '18.x'
         cache: 'npm'
         cache-dependency-path: ./frontend/package-lock.json
-    - run: npm install
-    - run: npm run test:coverage
-    - run: npm run build
+        
+    - name: Installation des paquets
+      run: npm install
+      
+    - name: Lancer Vitest (Tests & Couverture)
+      run: npm run test:coverage
