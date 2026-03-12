@@ -1,30 +1,82 @@
-name: Pipeline CI
+name: CI Pipeline
 
 on:
   push:
-    branches: [ "dev", "prod" ]
+    branches: [ "prod", "dev" ]
   pull_request:
-    branches: [ "dev", "prod" ]
+    branches: [ "prod", "dev" ]
 
 jobs:
   backend-tests:
-    name: Tests Backend (Node/Jest)
     runs-on: ubuntu-latest
-    
     defaults:
       run:
         working-directory: ./backend
 
     steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        cache-dependency-path: ./backend/package-lock.json
+    - run: npm install
+    - run: npm run lint
+    - run: npm run test:coverage
+
+  frontend-tests:
+    name: Tests Frontend (React/Vitest)
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
     - name: Checkout du code
       uses: actions/checkout@v4
+      
     - name: Configurer Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
         cache: 'npm'
-        cache-dependency-path: ./backend/package-lock.json
+        cache-dependency-path: ./frontend/package-lock.json
+        
     - name: Installation des paquets
       run: npm install
-    - name: Lancer Jest
+      
+    - name: Lancer Vitest (Tests & Couverture)
       run: npm run test:coverage
+
+  e2e-selenium:
+    name: Tests E2E Selenium
+    needs: [backend-tests, frontend-tests] # Ne se lance que si les tests unitaires passent
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+      - name: Start Backend
+        run: |
+          cd backend
+          npm install
+          npm run dev &
+        env:
+          PORT: 3001
+      - name: Start Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run dev -- --port 3000 &
+      - name: Run Selenium Tests
+        run: |
+          cd tests
+          npm install
+          # On attend que le port 3000 réponde avant de lancer Selenium
+          npx wait-on http://localhost:3000 --timeout 60000
+          npm test
